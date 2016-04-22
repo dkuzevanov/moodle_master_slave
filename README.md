@@ -1,5 +1,6 @@
 # moodle_mysqli_ms
 Extended copy of native mysqli class that provide simple read/write splitting (by substitute mysqli object).
+Required Moodle version 3 and above.
 ## License
 [GNU GPL v3 or later](http://www.gnu.org/copyleft/gpl.html)
 ## Install
