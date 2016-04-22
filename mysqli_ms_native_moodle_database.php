@@ -98,7 +98,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     public function get_server_info(mysqli $mysqli = null)
     {
         if ($mysqli) {
-            return ['description' => $mysqli->server_info, 'version' => $mysqli->server_info];
+            return array('description' => $mysqli->server_info, 'version' => $mysqli->server_info);
         } else {
             return parent::get_server_info();
         }
@@ -351,7 +351,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
         }
 
         if ($this->_slave === false) {
-            $pool = isset($CFG->dbslaves) && is_array($CFG->dbslaves) ? $CFG->dbslaves : [];
+            $pool = isset($CFG->dbslaves) && is_array($CFG->dbslaves) ? $CFG->dbslaves : array();
             $this->_slave = $this->openFromPool($pool);
         }
 
