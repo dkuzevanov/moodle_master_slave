@@ -3,7 +3,8 @@ Extended copy of native mysqli class that provide simple read/write splitting (b
 
 Required:
 1. Moodle version 3 and above;
-2. PHP 7.
+2. PHP 7;
+
 ## License
 [GNU GPL v3 or later](http://www.gnu.org/copyleft/gpl.html)
 ## Install
