@@ -174,7 +174,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     }
 
     /**
-     * Magic method to substitute [[mysqli]] (master/slave) based on [[last_type]]
+     * Magic method to substitute [[mysqli]] (master/slave) based on [[queryType]]
      * @param $name
      * @return mixed
      */
