@@ -1,11 +1,13 @@
 # moodle_mysqli_ms
 Extended copy of native mysqli class that provide simple read/write splitting (by substitute mysqli object).
+## License
+[GNU GPL v3 or later](http://www.gnu.org/copyleft/gpl.html)
 ## Install
 1. Put **mysqli_ms_native_moodle_database.php** to the **/lib/dml** directory;
 2. Set **$CFG->dbtype** (in config.php) to 'mysqli_ms' (without quotes);
 3. Slaves configurations may be placed in **$CFG->dbslaves** array (of slave config arrays);
 
-Your confing file have to be like this:
+Part of your confing file have to be like this:
 ```php
 $CFG->dbtype    = 'mysqli_ms';
 $CFG->dblibrary = 'native';
