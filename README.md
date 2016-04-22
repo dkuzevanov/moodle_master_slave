@@ -6,7 +6,7 @@ Required Moodle version 3 (and above).
 ## License
 [GNU GPL v3 or later](http://www.gnu.org/copyleft/gpl.html)
 ## Install
-1. Put **mysqli_ms_native_moodle_database.php** to the **/lib/dml** directory;
+1. Put files to the **/lib/dml** directory;
 2. Set **$CFG->dbtype** (in config.php) to 'mysqli_ms' or 'mariadb_ms' (without quotes);
 3. Slaves configurations may be placed in **$CFG->dbslaves** array (of slave config arrays);
 
