@@ -63,7 +63,8 @@ define('SQL_QUERY_STRUCTURE', 4);
 define('SQL_QUERY_AUX', 5);
 ```
 
-Based on this information, we substitute necessary (master or slave) mysqli connection in the `$mysqli` property.
+Based on this information, we automatically substitute necessary (master or slave) mysqli connection in the `$mysqli` property, no additional actions needed. Just use `$DB` as you use it every time.
+
 
 If you want force using the master connection to perform DB operations even if they are read queries, use:
  ```php
