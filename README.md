@@ -64,14 +64,15 @@ define('SQL_QUERY_AUX', 5);
 ```
 
 Based on this information, we automatically substitute necessary (master or slave) mysqli connection in the `$mysqli` property, no additional actions needed. Just use `$DB` as you use it every time.
-
+Queries SQL_QUERY_AUX and SQL_QUERY_SELECT will be processed by slave, all another by master.
+If you start transcation — all queries will be processed by master untill you end it by commit or rollback.
 
 If you want force using the master connection to perform DB operations even if they are read queries, use:
  ```php
 global $DB;
 
 $result = $DB->useMaster(function ($db) {
-    return $DB->get_records_sql('SELECT * FROM user LIMIT 1');
+    return $db->get_records_sql('SELECT * FROM user LIMIT 1');
 });
 ```
 
