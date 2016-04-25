@@ -67,14 +67,18 @@ Based on this information, we substitute necessary (master or slave) mysqli conn
 
 If you want force using the master connection to perform DB operations even if they are read queries, use:
  ```php
-$result = $db->useMaster(function ($db) {
-    return $db->get_records_sql('SELECT * FROM user LIMIT 1');
+global $DB;
+
+$result = $DB->useMaster(function ($db) {
+    return $DB->get_records_sql('SELECT * FROM user LIMIT 1');
 });
 ```
 
 If you want force using the slave connection to perform DB operations even if they are write queries, use:
  ```php
-$result = $db->useSlave(function ($db) {
+global $DB;
+
+$result = $DB->useSlave(function ($db) {
     return $db->get_records_sql('SELECT * FROM user LIMIT 1');
 });
 ```
