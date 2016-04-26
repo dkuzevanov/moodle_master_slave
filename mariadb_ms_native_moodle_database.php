@@ -23,23 +23,17 @@ class mariadb_ms_native_moodle_database extends mysqli_ms_native_moodle_database
 {
     /**
      * {@inheritdoc}
-     * @param mysqli $mysqli
      */
-    public function get_server_info(mysqli $mysqli = null)
+    public static function get_server_info_static(mysqli $mysqli)
     {
-        if ($mysqli) {
-            $mysqli_ = $mysqli;
-        } else {
-            $mysqli_ = $this->mysqli;
-        }
-
-        $version = $mysqli_->server_info;
+        $version = $mysqli->server_info;
         $matches = null;
         if (preg_match('/^5\.5\.5-(10\..+)-MariaDB/i', $version, $matches)) {
             // Looks like MariaDB decided to use these weird version numbers for better BC with MySQL...
             $version = $matches[1];
         }
-        return array('description' => $mysqli_->server_info, 'version' => $version);
+        
+        return array('description' => $mysqli->server_info, 'version' => $version);
     }
 
     /**
@@ -49,7 +43,8 @@ class mariadb_ms_native_moodle_database extends mysqli_ms_native_moodle_database
      *
      * @return bool
      */
-    protected function transactions_supported() {
+    protected function transactions_supported()
+    {
         if ($this->external) {
             return parent::transactions_supported();
         }
