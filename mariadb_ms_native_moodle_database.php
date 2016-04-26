@@ -32,7 +32,7 @@ class mariadb_ms_native_moodle_database extends mysqli_ms_native_moodle_database
             // Looks like MariaDB decided to use these weird version numbers for better BC with MySQL...
             $version = $matches[1];
         }
-        
+
         return array('description' => $mysqli->server_info, 'version' => $version);
     }
 
