@@ -40,7 +40,7 @@ $CFG->dbslaves = array(
 ```
 
 ## Usage
-All queries in original **mysqli_native_moodle_database** are starts with:
+All queries in original **mysqli_native_moodle_database** (and in **mariadb_ms_native_moodle_database**) are starts with:
 ```php
 $this->query_start($sql, $params, $type);
 ```
