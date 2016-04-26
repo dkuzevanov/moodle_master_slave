@@ -25,18 +25,18 @@ $CFG->dboptions = array(
   'dbsocket' => '',
 );
 $CFG->dbslaves = array(
-    [
+    array(
         'dbhost' => 'slave.hostname',
         'dbname' => 'dbname',
         'dbuser' => 'root',
         'dbpass' => 'password',
-        'dboptions' => [
+        'dboptions' => array(
             'dbpersist' => 0,
             'dbport' => '3306',
             'dbsocket' => '',
-        ],
-    ],
-    [...]
+        ),
+    ),
+    array(...)
 );
 ```
 
