@@ -70,7 +70,7 @@ If you want force using the master connection to perform DB operations even if t
  ```php
 global $DB;
 
-$result = $DB->useMaster(function ($db) {
+$result = $DB->use_master(function ($db) {
     return $db->get_records_sql('SELECT * FROM user LIMIT 1');
 });
 ```
@@ -79,7 +79,7 @@ If you want force using the slave connection to perform DB operations even if th
  ```php
 global $DB;
 
-$result = $DB->useSlave(function ($db) {
+$result = $DB->use_slave(function ($db) {
     return $db->get_records_sql('SELECT * FROM user LIMIT 1');
 });
 ```
