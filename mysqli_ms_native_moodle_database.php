@@ -28,7 +28,13 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     /**
      * @var mysqli the currently active slave connection
      */
-    private $_slave = false;
+    private $_slave;
+    /**
+     * @var array list of slave connection configurations. Each configuration is used to create a slave DB connection.
+     * When [[enableSlaves]] is true, one of these configurations will be chosen and used to create a DB connection
+     * for performing read queries only.
+     */
+    private $_slavesConfigs = array();
     /**
      * @var cache the cache object or the ID of the cache application component that is used to store
      * the health status of the DB servers specified in [[masters]] and [[slaves]].
@@ -64,6 +70,22 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * @var integer Last query type.
      */
     public $query_type;
+
+    /**
+     * {@inheritdoc}
+     */
+    public function __construct($external)
+    {
+        global $CFG;
+
+        if (isset($CFG->dbtimeout)) {
+            $this->server_retry_interval = (int)$CFG->dbtimeout;
+        }
+
+        $this->_slavesConfigs = isset($CFG->dbslaves) && is_array($CFG->dbslaves) ? $CFG->dbslaves : array();
+
+        return parent::__construct($external);
+    }
 
     /**
      * {@inheritdoc}
@@ -193,16 +215,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
             switch ($this->query_type) {
                 case SQL_QUERY_SELECT:
                 case SQL_QUERY_AUX:
-                    $mysqli = $this->get_slave();
-
-                    if ($this->_slave !== null) {
-                        $this->reads_on_slave++;
-                        if ($this->reads > 0) {
-                            $this->reads--;
-                        }
-                    }
-
-                    return $mysqli;
+                    return $this->get_slave();
                     break;
                 case SQL_QUERY_INSERT:
                 case SQL_QUERY_UPDATE:
@@ -234,6 +247,13 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     public function query_end($result)
     {
         $this->query_type = null;
+
+        if ($this->_slave) {
+            $this->reads_on_slave++;
+            if ($this->reads > 0) {
+                $this->reads--;
+            }
+        }
 
         parent::query_end($result);
     }
@@ -349,18 +369,15 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function get_slave($fallbackToMaster = true)
     {
-        global $CFG;
-
-        if (!$this->enable_slaves) {
+        if (!$this->enable_slaves || empty($this->_slavesConfigs)) {
             return $fallbackToMaster ? $this->_master : null;
         }
 
-        if ($this->_slave === false) {
-            $pool = isset($CFG->dbslaves) && is_array($CFG->dbslaves) ? $CFG->dbslaves : array();
-            $this->_slave = $this->open_from_pool($pool);
+        if (!$this->_slave) {
+            $this->_slave = $this->open_from_pool($this->_slavesConfigs);
         }
 
-        if ($this->_slave !== null) {
+        if ($this->_slave) {
             return $this->_slave;
         } else {
             return $fallbackToMaster ? $this->_master : null;
