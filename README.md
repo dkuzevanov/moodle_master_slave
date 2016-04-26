@@ -36,7 +36,6 @@ $CFG->dbslaves = array(
             'dbsocket' => '',
         ),
     ),
-    array(...)
 );
 ```
 
