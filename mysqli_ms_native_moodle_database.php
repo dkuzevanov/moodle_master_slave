@@ -376,10 +376,6 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     protected function open_from_pool(array $pool)
     {
-        if (empty($pool)) {
-            return null;
-        }
-
         shuffle($pool);
         $cache = $this->get_cache();
 
@@ -415,7 +411,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * DB operations even if they are read queries. For example,
      *
      * ```php
-     * $result = $DB->useMaster(function ($db) {
+     * $result = $DB->use_master(function ($db) {
      *     return $db->get_records_sql('SELECT * FROM user LIMIT 1');
      * });
      * ```
@@ -423,7 +419,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * @param callable $callback
      * @return mixed
      */
-    public function useMaster(callable $callback)
+    public function use_master(callable $callback)
     {
         $enableSlaves = $this->enable_slaves;
         $this->enable_slaves(false);
@@ -440,7 +436,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * DB operations even if they are write queries. For example,
      *
      * ```php
-     * $result = $DB->useSlave(function ($db) {
+     * $result = $DB->use_slave(function ($db) {
      *     return $db->get_records_sql('SELECT * FROM user LIMIT 1');
      * });
      * ```
@@ -448,7 +444,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * @param callable $callback
      * @return mixed
      */
-    public function useSlave(callable $callback)
+    public function use_slave(callable $callback)
     {
         $this->only_slave();
         $result = call_user_func($callback, $this);
