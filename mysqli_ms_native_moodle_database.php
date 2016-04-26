@@ -33,7 +33,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * @var cache the cache object or the ID of the cache application component that is used to store
      * the health status of the DB servers specified in [[masters]] and [[slaves]].
      */
-    private $serverStatusCache;
+    private $server_status_cache;
     /**
      * @var bool whether is there currently active master connection
      */
@@ -46,33 +46,24 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * @var boolean whether to enable read/write splitting by using [[slaves]] to read data.
      * Note that if [[slaves]] is empty, read/write splitting will NOT be enabled no matter what value this property takes.
      */
-    protected $enableSlaves = true;
+    protected $enable_slaves = true;
     /**
-     * @var bool
+     * @var bool whether are slaves enabled.
      */
-    protected $onlySlave = false;
+    protected $only_slave = false;
     /**
      * @var int The database reads on slave (performance counter).
      */
-    protected $readsOnSlave = 0;
+    protected $reads_on_slave = 0;
     /**
      * @var integer the retry interval in seconds for dead servers listed in [[masters]] and [[slaves]].
      * This is used together with [[serverStatusCache]].
      */
-    public $serverRetryInterval = 600;
+    public $server_retry_interval = 600;
     /**
      * @var integer Last query type.
      */
-    public $queryType;
-
-    /**
-     * {@inheritdoc}
-     */
-    public function __construct($external)
-    {
-        $this->serverStatusCache = cache::make_from_params(cache_store::MODE_APPLICATION, __CLASS__, 'cache');
-        parent::__construct($external);
-    }
+    public $query_type;
 
     /**
      * {@inheritdoc}
@@ -85,23 +76,39 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
             unset($this->mysqli);
             $this->active = true;
         } catch (moodle_exception $e) {
-            $this->processMoodleException($e);
+            self::process_moodle_exception($e);
         }
 
         return true;
     }
 
     /**
-     * {@inheritdoc}
-     * @param mysqli $mysqli
+     * @return cache|cache_application|cache_session|cache_store
      */
-    public function get_server_info(mysqli $mysqli = null)
+    protected function get_cache()
     {
-        if ($mysqli) {
-            return array('description' => $mysqli->server_info, 'version' => $mysqli->server_info);
-        } else {
-            return parent::get_server_info();
+        if (!($this->server_status_cache instanceof cache)) {
+            $this->server_status_cache = self::make_cache();
         }
+
+        return $this->server_status_cache;
+    }
+
+    /**
+     * @return cache_application|cache_session|cache_store
+     */
+    protected static function make_cache()
+    {
+        return cache::make_from_params(cache_store::MODE_APPLICATION, __CLASS__, 'general');
+    }
+
+    /**
+     * Returns database server info array.
+     * @return array Array containing 'description' and 'version' info
+     */
+    public static function get_server_info_static(mysqli $mysqli)
+    {
+        return array('description' => $mysqli->server_info, 'version' => $mysqli->server_info);
     }
 
     /**
@@ -112,16 +119,10 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * @param string $dbname The name of the database being connected to.
      * @param array $dboptions driver specific options
      * @return bool mysqli
-     * @throws dml_exception if error
+     * @throws dml_connection_exception if error
      */
-    private function makeMysqli($dbhost, $dbuser, $dbpass, $dbname, array $dboptions = null)
+    private static function make_mysqli($dbhost, $dbuser, $dbpass, $dbname, array $dboptions = null)
     {
-        $driverstatus = $this->driver_installed();
-
-        if ($driverstatus !== true) {
-            throw new dml_exception('dbdriverproblem', $driverstatus);
-        }
-
         // dbsocket is used ONLY if host is NULL or 'localhost',
         // you can not disable it because it is always tried if dbhost is 'localhost'
         if (!empty($dboptions['dbsocket'])
@@ -161,13 +162,10 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
         // habits like truncating data or performing some transparent cast losses.
         // With strict mode enforced, Moodle DB layer will be consistently throwing
         // the corresponding exceptions as expected.
-        $si = $this->get_server_info($mysqli);
+        $si = self::get_server_info_static($mysqli);
         if (version_compare($si['version'], '5.0.2', '>=')) {
             $sql = "SET SESSION sql_mode = 'STRICT_ALL_TABLES'";
-            //$this->query_start($sql, null, SQL_QUERY_AUX);
             $mysqli->query($sql);
-            //$result = $mysqli->query($sql);
-            //$this->query_end($result);
         }
 
         return $mysqli;
@@ -181,23 +179,23 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     public function __get($name)
     {
         if ($this->active && 'mysqli' === $name) {
-            if (!$this->enableSlaves) {
-                return $this->getMaster();
-            } elseif ($this->onlySlave) {
-                return $this->getSlave(false);
+            if (!$this->enable_slaves) {
+                return $this->get_master();
+            } elseif ($this->only_slave) {
+                return $this->get_slave(false);
             }
 
             if ($this->transaction) {
-                return $this->getMaster();
+                return $this->get_master();
             }
 
-            switch ($this->queryType) {
+            switch ($this->query_type) {
                 case SQL_QUERY_SELECT:
                 case SQL_QUERY_AUX:
-                    $mysqli = $this->getSlave();
+                    $mysqli = $this->get_slave();
 
                     if ($this->_slave !== null) {
-                        $this->readsOnSlave++;
+                        $this->reads_on_slave++;
                         if ($this->reads > 0) {
                             $this->reads--;
                         }
@@ -208,10 +206,10 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
                 case SQL_QUERY_INSERT:
                 case SQL_QUERY_UPDATE:
                 case SQL_QUERY_STRUCTURE:
-                    return $this->getMaster();
+                    return $this->get_master();
                     break;
                 default:
-                    return $this->getMaster();
+                    return $this->get_master();
             }
         }
 
@@ -219,16 +217,22 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
         return null;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function query_start($sql, array $params = null, $type, $extrainfo = null)
     {
-        $this->queryType = $type;
+        $this->query_type = $type;
 
         parent::query_start($sql, $params, $type, $extrainfo);
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function query_end($result)
     {
-        $this->queryType = null;
+        $this->query_type = null;
 
         parent::query_end($result);
     }
@@ -237,7 +241,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * Method to process raised moodle_exception while connecting to MySQL server.
      * @param moodle_exception $exception
      */
-    private function processMoodleException(moodle_exception $exception)
+    private static function process_moodle_exception(moodle_exception $exception)
     {
         global $CFG;
 
@@ -309,50 +313,50 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     /**
      * @param bool $enable
      */
-    public function enableSlaves(bool $enable = true)
+    public function enable_slaves(bool $enable = true)
     {
-        $this->enableSlaves = $enable;
+        $this->enable_slaves = $enable;
         if (!$enable) {
-            $this->onlySlave = false;
+            $this->only_slave = false;
         }
     }
 
     /**
      * @param bool $enable
      */
-    public function onlySlave(bool $enable = true)
+    public function only_slave(bool $enable = true)
     {
-        $this->onlySlave = $enable;
+        $this->only_slave = $enable;
     }
 
     /**
      * Returns the mysqli instance for the currently active master connection.
      * @return mysqli the mysqli instance for the currently active master connection.
      */
-    public function getMaster()
+    public function get_master()
     {
         return $this->_master;
     }
 
     /**
      * Returns the mysqli instance for the currently active slave connection.
-     * When [[enableSlaves]] is true, one of the slaves will be used for read queries, and its mysqli instance
+     * When [[enable_slaves]] is true, one of the slaves will be used for read queries, and its mysqli instance
      * will be returned by this method.
      * @param boolean $fallbackToMaster whether to return a master mysqli in case none of the slave connections is available.
      * @return mysqli the mysqli instance for the currently active slave connection. Null is returned if no slave connection
      * is available and `$fallbackToMaster` is false.
      */
-    public function getSlave($fallbackToMaster = true)
+    public function get_slave($fallbackToMaster = true)
     {
         global $CFG;
 
-        if (!$this->enableSlaves) {
+        if (!$this->enable_slaves) {
             return $fallbackToMaster ? $this->_master : null;
         }
 
         if ($this->_slave === false) {
             $pool = isset($CFG->dbslaves) && is_array($CFG->dbslaves) ? $CFG->dbslaves : array();
-            $this->_slave = $this->openFromPool($pool);
+            $this->_slave = $this->open_from_pool($pool);
         }
 
         if ($this->_slave !== null) {
@@ -369,20 +373,20 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * @return mysqli|null
      * @throws moodle_exception
      */
-    protected function openFromPool(array $pool)
+    protected function open_from_pool(array $pool)
     {
         if (empty($pool)) {
             return null;
         }
 
-        $cache = $this->serverStatusCache;
-
         shuffle($pool);
+        $cache = $this->get_cache();
 
         foreach ($pool as $config) {
             $config = (object)$config;
             $key = crc32(serialize($config));
-            if ($cache instanceof cache && $timestamp = $cache->get($key)) {
+
+            if ($timestamp = $cache->get($key)) {
                 if ($timestamp > time()) {
                     // should not try this dead server now
                     continue;
@@ -392,16 +396,11 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
             }
 
             try {
-                $mysqli = $this->makeMysqli($config->dbhost, $config->dbuser, $config->dbpass, $config->dbname, $config->dboptions);
-                return $mysqli;
+                return self::make_mysqli($config->dbhost, $config->dbuser, $config->dbpass, $config->dbname, $config->dboptions);
             } catch (moodle_exception $e) {
-                $this->processMoodleException($e);
-
-                if ($cache instanceof cache) {
-                    // mark this server as dead and only retry it after the specified interval
-                    $cache->set($key, time() + $this->serverRetryInterval);
-                }
-
+                self::process_moodle_exception($e);
+                // mark this server as dead and only retry it after the specified interval
+                $cache->set($key, time() + $this->server_retry_interval);
             }
         }
 
@@ -415,7 +414,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * DB operations even if they are read queries. For example,
      *
      * ```php
-     * $result = $db->useMaster(function ($db) {
+     * $result = $DB->useMaster(function ($db) {
      *     return $db->get_records_sql('SELECT * FROM user LIMIT 1');
      * });
      * ```
@@ -425,10 +424,10 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function useMaster(callable $callback)
     {
-        $enableSlaves = $this->enableSlaves;
-        $this->enableSlaves(false);
+        $enableSlaves = $this->enable_slaves;
+        $this->enable_slaves(false);
         $result = call_user_func($callback, $this);
-        $this->enableSlaves($enableSlaves);
+        $this->enable_slaves($enableSlaves);
 
         return $result;
     }
@@ -440,7 +439,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * DB operations even if they are write queries. For example,
      *
      * ```php
-     * $result = $db->useSlave(function ($db) {
+     * $result = $DB->useSlave(function ($db) {
      *     return $db->get_records_sql('SELECT * FROM user LIMIT 1');
      * });
      * ```
@@ -450,9 +449,9 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function useSlave(callable $callback)
     {
-        $this->onlySlave();
+        $this->only_slave();
         $result = call_user_func($callback, $this);
-        $this->onlySlave(false);
+        $this->only_slave(false);
 
         return $result;
     }
@@ -477,15 +476,16 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     /**
      * {@inheritdoc}
      */
-    public function perf_get_reads()
+    public function perf_get_reads($slaveOnly = false)
     {
-        return $this->readsOnSlave + $this->reads;
+        return $slaveOnly ? $this->reads_on_slave : $this->reads_on_slave + $this->reads;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function perf_get_queries() {
+    public function perf_get_queries()
+    {
         return $this->writes + $this->perf_get_reads();
     }
 }
