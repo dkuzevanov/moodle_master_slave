@@ -104,6 +104,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
 
     /**
      * Returns database server info array.
+     * @param mysqli mysqli object
      * @return array Array containing 'description' and 'version' info
      */
     public static function get_server_info_static(mysqli $mysqli)
@@ -313,9 +314,9 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     /**
      * @param bool $enable
      */
-    public function enable_slaves(bool $enable = true)
+    public function enable_slaves($enable = true)
     {
-        $this->enable_slaves = $enable;
+        $this->enable_slaves = (bool)$enable;
         if (!$enable) {
             $this->only_slave = false;
         }
@@ -324,9 +325,9 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     /**
      * @param bool $enable
      */
-    public function only_slave(bool $enable = true)
+    public function only_slave($enable = true)
     {
-        $this->only_slave = $enable;
+        $this->only_slave = (bool)$enable;
     }
 
     /**
