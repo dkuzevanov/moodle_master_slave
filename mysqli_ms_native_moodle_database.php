@@ -312,11 +312,11 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function commit_transaction()
     {
+        parent::commit_transaction();
+        
         if ($this->transactions_supported()) {
             $this->transaction = false;
         }
-
-        parent::commit_transaction();
     }
 
     /**
