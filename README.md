@@ -1,4 +1,4 @@
-# moodle_master_slave
+# Moodle master-slave replication support (for mysql&mariadb)
 Extended copy of native mysqli (and mariadb) class that provide master-slave replication support (by substitute mysqli object).
 
 Required Moodle version 3 (and above).
