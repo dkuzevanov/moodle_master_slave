@@ -39,7 +39,7 @@ $CFG->dbslaves = array(
 );
 ```
 
-## Usage
+## Explain & Usage
 All queries in original **mysqli_native_moodle_database** (and in **mariadb_ms_native_moodle_database**) are starts with:
 ```php
 $this->query_start($sql, $params, $type);
@@ -62,7 +62,38 @@ define('SQL_QUERY_STRUCTURE', 4);
 define('SQL_QUERY_AUX', 5);
 ```
 
-Based on this information, we automatically substitute necessary (master or slave) mysqli connection in the `$mysqli` property, no additional actions needed. Just use `$DB` as you use it every time.
+Based on this information, we automatically substitute necessary (master or slave) mysqli connection in the `$mysqli` property, no additional actions needed:
+```php
+public function __get($name)
+    {
+        if ($this->active && 'mysqli' === $name) {
+            if ($this->transaction || !$this->enable_slaves) {
+                return $this->get_master();
+            } elseif ($this->only_slave) {
+                return $this->get_slave(false);
+            }
+
+            switch ($this->query_type) {
+                case SQL_QUERY_SELECT:
+                case SQL_QUERY_AUX:
+                    return $this->get_slave();
+                    break;
+                case SQL_QUERY_INSERT:
+                case SQL_QUERY_UPDATE:
+                case SQL_QUERY_STRUCTURE:
+                    return $this->get_master();
+                    break;
+                default:
+                    return $this->get_master();
+            }
+        }
+
+        trigger_error('Undefined property: ' . __CLASS__ . '::' . $name, E_USER_NOTICE);
+        return null;
+    }
+```
+
+Just use `$DB` as you use it every time.
 Queries SQL_QUERY_AUX and SQL_QUERY_SELECT will be processed by slave, all another by master.
 If you start transcation — all queries will be processed by master untill you end it by commit or rollback.
 
