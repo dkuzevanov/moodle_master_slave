@@ -369,7 +369,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
             return $fallbackToMaster ? $this->_master : null;
         }
 
-        if (!$this->_slave) {
+        if (!$this->_slave || !$this->_slave->ping()) {
             $this->_slave = $this->open_from_pool($this->_slavesConfigs);
         }
 
