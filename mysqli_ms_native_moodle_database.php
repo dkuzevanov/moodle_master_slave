@@ -202,14 +202,10 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     public function __get($name)
     {
         if ($this->active && 'mysqli' === $name) {
-            if (!$this->enable_slaves) {
+            if ($this->transaction || !$this->enable_slaves) {
                 return $this->get_master();
             } elseif ($this->only_slave) {
                 return $this->get_slave(false);
-            }
-
-            if ($this->transaction) {
-                return $this->get_master();
             }
 
             switch ($this->query_type) {
