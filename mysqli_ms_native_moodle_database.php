@@ -320,11 +320,11 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function rollback_transaction()
     {
+        parent::rollback_transaction();
+
         if ($this->transactions_supported()) {
             $this->transaction = false;
         }
-
-        parent::rollback_transaction();
     }
 
     /**
