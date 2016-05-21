@@ -114,3 +114,21 @@ $result = $DB->use_slave(function ($db) {
     return $db->get_records_sql('SELECT * FROM user LIMIT 1');
 });
 ```
+
+You also can disable slaves by:
+```php
+$DB->enable_slaves(false);
+```
+And enable it again:
+```php
+$DB->enable_slaves();
+```
+
+If you want to use only slaves (turn off master), just call:
+```php
+$DB->only_slave();
+```
+To turn on master again:
+```php
+$DB->only_slave(false);
+```
