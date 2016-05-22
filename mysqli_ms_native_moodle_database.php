@@ -243,13 +243,6 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function query_end($result)
     {
-        if ($this->_slave) {
-            $this->reads_on_slave++;
-            if ($this->reads > 0) {
-                $this->reads--;
-            }
-        }
-
         parent::query_end($result);
     }
 
@@ -373,6 +366,11 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
         }
 
         if ($this->_slave) {
+            $this->reads_on_slave++;
+            if ($this->reads > 0) {
+                $this->reads--;
+            }
+
             return $this->_slave;
         } else {
             return $fallbackToMaster ? $this->_master : null;
