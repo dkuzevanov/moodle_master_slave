@@ -84,7 +84,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
 
         $this->_slavesConfigs = isset($CFG->dbslaves) && is_array($CFG->dbslaves) ? $CFG->dbslaves : array();
 
-        return parent::__construct($external);
+        parent::__construct($external);
     }
 
     /**
@@ -202,13 +202,16 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     public function __get($name)
     {
         if ($this->active && 'mysqli' === $name) {
+            $query_type = $this->query_type;
+            $this->query_type = null;
+
             if ($this->transaction || !$this->enable_slaves) {
                 return $this->get_master();
             } elseif ($this->only_slave) {
                 return $this->get_slave(false);
             }
 
-            switch ($this->query_type) {
+            switch ($query_type) {
                 case SQL_QUERY_SELECT:
                 case SQL_QUERY_AUX:
                     return $this->get_slave();
@@ -232,9 +235,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function query_start($sql, array $params = null, $type, $extrainfo = null)
     {
-        $this->query_type = $type;
-
-        parent::query_start($sql, $params, $type, $extrainfo);
+        parent::query_start($sql, $params, $this->query_type = $type, $extrainfo);
     }
 
     /**
@@ -242,8 +243,6 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function query_end($result)
     {
-        $this->query_type = null;
-
         if ($this->_slave) {
             $this->reads_on_slave++;
             if ($this->reads > 0) {
@@ -309,7 +308,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     public function commit_transaction()
     {
         parent::commit_transaction();
-        
+
         if ($this->transactions_supported()) {
             $this->transaction = false;
         }
