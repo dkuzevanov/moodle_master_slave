@@ -358,7 +358,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     public function get_slave($fallbackToMaster = true)
     {
         if (!$this->enable_slaves || empty($this->_slavesConfigs)) {
-            return $fallbackToMaster ? $this->_master : null;
+            return $fallbackToMaster ? $this->get_master() : null;
         }
 
         if (!$this->_slave || !$this->_slave->ping()) {
@@ -373,7 +373,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
 
             return $this->_slave;
         } else {
-            return $fallbackToMaster ? $this->_master : null;
+            return $fallbackToMaster ? $this->get_master() : null;
         }
     }
 
