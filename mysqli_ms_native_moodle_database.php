@@ -49,14 +49,14 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     private $transaction = false;
     /**
-     * @var boolean whether to enable read/write splitting by using [[slaves]] to read data.
+     * @var boolean whether to disable read/write splitting by using [[slaves]] to read data.
      * Note that if [[slaves]] is empty, read/write splitting will NOT be enabled no matter what value this property takes.
      */
-    protected $enable_slaves = true;
+    protected $disable_slaves = false;
     /**
-     * @var bool whether are slaves enabled.
+     * @var bool whether is master disabled.
      */
-    protected $only_slave = false;
+    protected $disable_master = false;
     /**
      * @var int The database reads on slave (performance counter).
      */
@@ -205,9 +205,9 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
             $query_type = $this->query_type;
             $this->query_type = null;
 
-            if ($this->transaction || !$this->enable_slaves) {
+            if (($this->transaction || $this->disable_slaves) && !$this->disable_master) {
                 return $this->get_master();
-            } elseif ($this->only_slave) {
+            } elseif ($this->disable_master && !$this->disable_slaves) {
                 return $this->get_slave(false);
             }
 
@@ -320,22 +320,24 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     }
 
     /**
-     * @param bool $enable
+     * @param bool $disable
      */
-    public function enable_slaves($enable = true)
+    public function disable_slaves($disable = true)
     {
-        $this->enable_slaves = (bool)$enable;
-        if (!$enable) {
-            $this->only_slave = false;
+        if ($disable) {
+            $this->disable_master(false);
         }
+        $this->disable_slaves = (bool)$disable;
     }
 
     /**
-     * @param bool $enable
+     * @param bool $disable
      */
-    public function only_slave($enable = true)
+    public function disable_master($disable = true)
     {
-        $this->only_slave = (bool)$enable;
+        if(!$disable || !$this->disable_slaves) {
+            $this->disable_master = (bool)$disable;
+        }
     }
 
     /**
@@ -349,7 +351,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
 
     /**
      * Returns the mysqli instance for the currently active slave connection.
-     * When [[enable_slaves]] is true, one of the slaves will be used for read queries, and its mysqli instance
+     * When [[disable_slaves]] is false, one of the slaves will be used for read queries, and its mysqli instance
      * will be returned by this method.
      * @param boolean $fallbackToMaster whether to return a master mysqli in case none of the slave connections is available.
      * @return mysqli the mysqli instance for the currently active slave connection. Null is returned if no slave connection
@@ -357,7 +359,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function get_slave($fallbackToMaster = true)
     {
-        if (!$this->enable_slaves || empty($this->_slavesConfigs)) {
+        if ($this->disable_slaves || empty($this->_slavesConfigs)) {
             return $fallbackToMaster ? $this->get_master() : null;
         }
 
@@ -431,10 +433,10 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function use_master(callable $callback)
     {
-        $enableSlaves = $this->enable_slaves;
-        $this->enable_slaves(false);
+        $disableSlaves = $this->disable_slaves;
+        $this->disable_slaves();
         $result = call_user_func($callback, $this);
-        $this->enable_slaves($enableSlaves);
+        $this->disable_slaves($disableSlaves);
 
         return $result;
     }
@@ -456,9 +458,10 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function use_slave(callable $callback)
     {
-        $this->only_slave();
+        $disableMaster = $this->disable_master;
+        $this->disable_master();
         $result = call_user_func($callback, $this);
-        $this->only_slave(false);
+        $this->disable_master($disableMaster);
 
         return $result;
     }
