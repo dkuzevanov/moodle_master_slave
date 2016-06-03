@@ -320,6 +320,9 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     }
 
     /**
+     * Disable/enable read/write splitting by using slaves to read data.
+     * This function will enable master (if it was disabled).
+     *
      * @param bool $disable
      */
     public function disable_slaves($disable = true)
@@ -331,6 +334,8 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     }
 
     /**
+     * Disable/enable master (disable only if slaves are not disabled).
+     *
      * @param bool $disable
      */
     public function disable_master($disable = true)
