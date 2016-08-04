@@ -141,7 +141,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * @param string $dbpass The password to use when connecting to the database.
      * @param string $dbname The name of the database being connected to.
      * @param array $dboptions driver specific options
-     * @return bool mysqli
+     * @return mysqli
      * @throws dml_connection_exception if error
      */
     private static function make_mysqli($dbhost, $dbuser, $dbpass, $dbname, array $dboptions = null)
