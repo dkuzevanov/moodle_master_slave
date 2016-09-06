@@ -67,9 +67,14 @@ Based on this information, we automatically substitute necessary (master or slav
 public function __get($name)
     {
         if ($this->active && 'mysqli' === $name) {
-            if ($this->transaction || !$this->enable_slaves) {
+            $query_type = $this->query_type;
+            $this->query_type = null;
+            
+            $this->lock_on_master();
+            
+            if (($this->transaction || $this->disable_slaves) && !$this->disable_master) {
                 return $this->get_master();
-            } elseif ($this->only_slave) {
+            } elseif ($this->disable_master && !$this->disable_slaves) {
                 return $this->get_slave(false);
             }
 
