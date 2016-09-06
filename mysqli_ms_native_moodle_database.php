@@ -70,6 +70,10 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      * @var integer Last query type.
      */
     public $query_type;
+    /**
+     * @var array
+     */
+    protected $locked_on_master_classes = array('backup');
 
     /**
      * {@inheritdoc}
@@ -195,6 +199,33 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     }
 
     /**
+     * Detect backup (or restore) process.
+     * @return bool
+     */
+    public function lock_on_master()
+    {
+        if (!$this->disable_slaves) {
+            $backtrace = debug_backtrace();
+            $backtrace = array_reverse($backtrace);
+            $unique_class_names = array();
+
+            foreach ($backtrace as $entry) {
+                if (!empty($entry['class'])) {
+                    $unique_class_names[$entry['class']] = true;
+                }
+            }
+
+            foreach ($unique_class_names as $class_name => $flag) {
+                foreach ($this->locked_on_master_classes as $locked_on_master_class) {
+                    if (is_subclass_of($class_name, $locked_on_master_class)) {
+                        $this->disable_slaves();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Magic method to substitute [[mysqli]] (master/slave) based on [[queryType]]
      * @param $name
      * @return mixed
@@ -204,6 +235,8 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
         if ($this->active && 'mysqli' === $name) {
             $query_type = $this->query_type;
             $this->query_type = null;
+
+            $this->lock_on_master();
 
             if (($this->transaction || $this->disable_slaves) && !$this->disable_master) {
                 return $this->get_master();
@@ -340,7 +373,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
      */
     public function disable_master($disable = true)
     {
-        if(!$disable || !$this->disable_slaves) {
+        if (!$disable || !$this->disable_slaves) {
             $this->disable_master = (bool)$disable;
         }
     }
