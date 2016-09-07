@@ -219,6 +219,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
                 foreach ($this->locked_on_master_classes as $locked_on_master_class) {
                     if (is_subclass_of($class_name, $locked_on_master_class)) {
                         $this->disable_slaves();
+                        break 2;
                     }
                 }
             }
