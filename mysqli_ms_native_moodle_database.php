@@ -73,7 +73,7 @@ class mysqli_ms_native_moodle_database extends mysqli_native_moodle_database
     /**
      * @var array
      */
-    protected $locked_on_master_classes = array('backup');
+    protected $locked_on_master_classes = array('backup', 'db_record_lock_factory');
 
     /**
      * {@inheritdoc}
