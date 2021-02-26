@@ -1,3 +1,5 @@
+> **THIS PROJECT IS ABADONED SINCE JAN 2018**
+ 
 # Moodle master-slave replication support (for mysql&mariadb)
 Extended copy of native mysqli (and mariadb) class that provide master-slave replication support (by substitute mysqli object).
 
